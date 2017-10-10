@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from .baseapi import BaseAPI, POST, DELETE, PUT
-
+from .baseapi import BaseAPI, POST, DELETE, PUT, NotFoundError
 
 class Image(BaseAPI):
     def __init__(self, *args, **kwargs):
@@ -17,16 +16,49 @@ class Image(BaseAPI):
         super(Image, self).__init__(*args, **kwargs)
 
     @classmethod
-    def get_object(cls, api_token, image_id):
+    def get_object(cls, api_token, image_id_or_slug):
         """
-            Class method that will return an Image object by ID.
+            Class method that will return an Image object by ID or slug.
+
+            This method is used to validate the type of the image. If it is a
+            number, it will be considered as an Image ID, instead if it is a
+            string, it will considered as slug.
         """
-        image = cls(token=api_token, id=image_id)
-        image.load()
+        if cls._is_string(image_id_or_slug):
+            image = cls(token=api_token, slug=image_id_or_slug)
+            image.load(use_slug=True)
+        else:
+            image = cls(token=api_token, id=image_id_or_slug)
+            image.load()
         return image
 
-    def load(self):
-        data = self.get_data("images/%s" % self.id)
+    @staticmethod
+    def _is_string(value):
+        """
+            Checks if the value provided is a string (True) or not integer
+            (False) or something else (None).
+        """
+        if type(value) in [type(u''), type('')]:
+            return True
+        elif type(value) in [int, type(2 ** 64)]:
+            return False
+        else:
+            return None
+
+    def load(self, use_slug=False):
+        """
+            Load slug.
+
+            Loads by id, or by slug if id is not present or use slug is True.
+        """
+        identifier = None
+        if use_slug or not self.id:
+            identifier = self.slug
+        else:
+            identifier = self.id
+        if not identifier:
+            raise NotFoundError("One of self.id or self.slug must be set.")
+        data = self.get_data("images/%s" % identifier)
         image_dict = data['image']
 
         # Setting the attribute values

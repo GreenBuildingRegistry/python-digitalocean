@@ -11,6 +11,7 @@ from .Certificate import Certificate
 from .Domain import Domain
 from .Droplet import Droplet
 from .FloatingIP import FloatingIP
+from .Firewall import Firewall
 from .Image import Image
 from .LoadBalancer import LoadBalancer
 from .LoadBalancer import StickySesions, HealthCheck, ForwardingRule
@@ -127,11 +128,14 @@ class Manager(BaseAPI):
         images = self.get_images()
         return images
 
-    def get_image(self, image_id):
+    def get_image(self, image_id_or_slug):
         """
-            Return a Image by its ID.
+            Return a Image by its ID/Slug.
         """
-        return Image.get_object(api_token=self.token, image_id=image_id)
+        return Image.get_object(
+            api_token=self.token,
+            image_id_or_slug=image_id_or_slug,
+        )
 
     def get_my_images(self):
         """
@@ -345,6 +349,27 @@ class Manager(BaseAPI):
             Returns a Volume object by its ID.
         """
         return Volume.get_object(api_token=self.token, volume_id=volume_id)
+
+    def get_all_firewalls(self):
+        """
+            This function returns a list of Firewall objects.
+        """
+        data = self.get_data("firewalls")
+        firewalls = list()
+        for jsoned in data['firewalls']:
+            firewall = Firewall(**jsoned)
+            firewall.token = self.token
+            firewalls.append(firewall)
+        return firewalls
+
+    def get_firewall(self, firewall_id):
+        """
+            Return a Firewall by its ID.
+        """
+        return Firewall.get_object(
+            api_token=self.token,
+            firewall_id=firewall_id,
+        )
 
     def __str__(self):
         return "<Manager>"
